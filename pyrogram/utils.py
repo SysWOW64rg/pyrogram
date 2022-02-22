@@ -1,5 +1,5 @@
 #  Pyrogram - Telegram MTProto API Client Library for Python
-#  Copyright (C) 2017-present Dan <https://github.com/delivrance>
+#  Copyright (C) 2017-2021 Dan <https://github.com/delivrance>
 #
 #  This file is part of Pyrogram.
 #
@@ -73,6 +73,41 @@ def get_input_media_from_file_id(
                 access_hash=decoded.access_hash,
                 file_reference=decoded.file_reference
             )
+        )
+
+    raise ValueError(f"Unknown file id: {file_id}")
+
+
+def get_input_file_from_file_id(
+    file_id: str,
+    expected_file_type: FileType = None
+) -> Union["raw.types.InputPhoto", "raw.types.InputDocument"]:
+    try:
+        decoded = FileId.decode(file_id)
+    except Exception:
+        raise ValueError(f'Failed to decode "{file_id}". The value does not represent an existing local file, '
+                         f'HTTP URL, or valid file id.')
+
+    file_type = decoded.file_type
+
+    if expected_file_type is not None and file_type != expected_file_type:
+        raise ValueError(f'Expected: "{expected_file_type}", got "{file_type}" file_id instead')
+
+    if file_type in (FileType.THUMBNAIL, FileType.CHAT_PHOTO):
+        raise ValueError(f"This file_id can only be used for download: {file_id}")
+
+    if file_type in PHOTO_TYPES:
+        return raw.types.InputPhoto(
+            id=decoded.media_id,
+            access_hash=decoded.access_hash,
+            file_reference=decoded.file_reference
+        )
+
+    if file_type in DOCUMENT_TYPES:
+        return raw.types.InputDocument(
+            id=decoded.media_id,
+            access_hash=decoded.access_hash,
+            file_reference=decoded.file_reference
         )
 
     raise ValueError(f"Unknown file id: {file_id}")
@@ -159,7 +194,6 @@ def unpack_inline_message_id(inline_message_id: str) -> "raw.types.InputBotInlin
 MIN_CHANNEL_ID = -1002147483647
 MAX_CHANNEL_ID = -1000000000000
 MIN_CHAT_ID = -2147483647
-MAX_USER_ID_OLD = 2147483647
 MAX_USER_ID = 999999999999
 
 
